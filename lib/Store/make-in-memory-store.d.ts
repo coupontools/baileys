@@ -2,9 +2,11 @@ import type KeyedDB from '@adiwajshing/keyed-db';
 import type { Comparable } from '@adiwajshing/keyed-db/lib/Types';
 import type { Logger } from 'pino';
 import { proto } from '../../WAProto';
+import type makeLegacySocket from '../LegacySocket';
 import type makeMDSocket from '../Socket';
 import type { BaileysEventEmitter, Chat, ConnectionState, Contact, GroupMetadata, PresenceData, WAMessage, WAMessageCursor, WAMessageKey } from '../Types';
-declare type WASocket = ReturnType<typeof makeMDSocket>;
+declare type LegacyWASocket = ReturnType<typeof makeLegacySocket>;
+declare type AnyWASocket = ReturnType<typeof makeMDSocket>;
 export declare const waChatKey: (pin: boolean) => {
     key: (c: Chat) => string;
     compare: (k1: string, k2: string) => number;
@@ -14,7 +16,7 @@ export declare type BaileysInMemoryStoreConfig = {
     chatKey?: Comparable<Chat, string>;
     logger?: Logger;
 };
-declare const _default: ({ logger: _logger, chatKey }: BaileysInMemoryStoreConfig) => {
+declare const _default: ({ logger, chatKey }: BaileysInMemoryStoreConfig) => {
     chats: KeyedDB<Chat, string>;
     contacts: {
         [_: string]: Contact;
@@ -22,7 +24,7 @@ declare const _default: ({ logger: _logger, chatKey }: BaileysInMemoryStoreConfi
     messages: {
         [_: string]: {
             array: proto.IWebMessageInfo[];
-            get: (id: string) => proto.IWebMessageInfo | undefined;
+            get: (id: string) => proto.IWebMessageInfo;
             upsert: (item: proto.IWebMessageInfo, mode: "append" | "prepend") => void;
             update: (item: proto.IWebMessageInfo) => boolean;
             remove: (item: proto.IWebMessageInfo) => boolean;
@@ -44,12 +46,13 @@ declare const _default: ({ logger: _logger, chatKey }: BaileysInMemoryStoreConfi
     };
     bind: (ev: BaileysEventEmitter) => void;
     /** loads messages from the store, if not found -- uses the legacy connection */
-    loadMessages: (jid: string, count: number, cursor: WAMessageCursor) => Promise<proto.IWebMessageInfo[]>;
-    loadMessage: (jid: string, id: string) => Promise<proto.IWebMessageInfo | undefined>;
-    mostRecentMessage: (jid: string) => Promise<proto.IWebMessageInfo>;
-    fetchImageUrl: (jid: string, sock: WASocket | undefined) => Promise<string | null | undefined>;
-    fetchGroupMetadata: (jid: string, sock: WASocket | undefined) => Promise<GroupMetadata>;
-    fetchMessageReceipts: ({ remoteJid, id }: WAMessageKey) => Promise<proto.IUserReceipt[] | null | undefined>;
+    loadMessages: (jid: string, count: number, cursor: WAMessageCursor, sock: LegacyWASocket | undefined) => Promise<proto.IWebMessageInfo[]>;
+    loadMessage: (jid: string, id: string, sock: LegacyWASocket | undefined) => Promise<proto.IWebMessageInfo>;
+    mostRecentMessage: (jid: string, sock: LegacyWASocket | undefined) => Promise<proto.IWebMessageInfo>;
+    fetchImageUrl: (jid: string, sock: AnyWASocket | undefined) => Promise<string>;
+    fetchGroupMetadata: (jid: string, sock: AnyWASocket | undefined) => Promise<GroupMetadata>;
+    fetchBroadcastListInfo: (jid: string, sock: LegacyWASocket | undefined) => Promise<GroupMetadata>;
+    fetchMessageReceipts: ({ remoteJid, id }: WAMessageKey, sock: LegacyWASocket | undefined) => Promise<proto.IUserReceipt[]>;
     toJSON: () => {
         chats: KeyedDB<Chat, string>;
         contacts: {
@@ -58,7 +61,7 @@ declare const _default: ({ logger: _logger, chatKey }: BaileysInMemoryStoreConfi
         messages: {
             [_: string]: {
                 array: proto.IWebMessageInfo[];
-                get: (id: string) => proto.IWebMessageInfo | undefined;
+                get: (id: string) => proto.IWebMessageInfo;
                 upsert: (item: proto.IWebMessageInfo, mode: "append" | "prepend") => void;
                 update: (item: proto.IWebMessageInfo) => boolean;
                 remove: (item: proto.IWebMessageInfo) => boolean;

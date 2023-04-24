@@ -1,28 +1,37 @@
+/// <reference types="node" />
 import type { Boom } from '@hapi/boom';
+import type EventEmitter from 'events';
 import { proto } from '../../WAProto';
 import { AuthenticationCreds } from './Auth';
 import { WACallEvent } from './Call';
-import { Chat, ChatUpdate, PresenceData } from './Chat';
+import { Chat, PresenceData } from './Chat';
 import { Contact } from './Contact';
 import { GroupMetadata, ParticipantAction } from './GroupMetadata';
-import { MessageUpsertType, MessageUserReceiptUpdate, WAMessage, WAMessageKey, WAMessageUpdate } from './Message';
+import { MessageUpdateType, MessageUserReceiptUpdate, WAMessage, WAMessageKey, WAMessageUpdate } from './Message';
 import { ConnectionState } from './State';
-export declare type BaileysEventMap = {
+export declare type BaileysEventMap<T> = {
     /** connection state has been updated -- WS closed, opened, connecting etc. */
     'connection.update': Partial<ConnectionState>;
     /** credentials updated -- some metadata, keys or something */
-    'creds.update': Partial<AuthenticationCreds>;
-    /** set chats (history sync), everything is reverse chronologically sorted */
-    'messaging-history.set': {
+    'creds.update': Partial<T>;
+    /** set chats (history sync), chats are reverse chronologically sorted */
+    'chats.set': {
         chats: Chat[];
-        contacts: Contact[];
+        isLatest: boolean;
+    };
+    /** set messages (history sync), messages are reverse chronologically sorted */
+    'messages.set': {
         messages: WAMessage[];
         isLatest: boolean;
+    };
+    /** set contacts (history sync) */
+    'contacts.set': {
+        contacts: Contact[];
     };
     /** upsert chats */
     'chats.upsert': Chat[];
     /** update the given chats */
-    'chats.update': ChatUpdate[];
+    'chats.update': Partial<Chat>[];
     /** delete chats with given ID */
     'chats.delete': string[];
     /** presence of contact in a chat updated */
@@ -55,13 +64,13 @@ export declare type BaileysEventMap = {
      *  */
     'messages.upsert': {
         messages: WAMessage[];
-        type: MessageUpsertType;
+        type: MessageUpdateType;
     };
-    /** message was reacted to. If reaction was removed -- then "reaction.text" will be falsey */
     'messages.reaction': {
         key: WAMessageKey;
         reaction: proto.IReaction;
-    }[];
+        operation: 'add' | 'remove';
+    };
     'message-receipt.update': MessageUserReceiptUpdate[];
     'groups.upsert': GroupMetadata[];
     'groups.update': Partial<GroupMetadata>[];
@@ -81,65 +90,10 @@ export declare type BaileysEventMap = {
     /** Receive an update on a call, including when the call was received, rejected, accepted */
     'call': WACallEvent[];
 };
-export declare type BufferedEventData = {
-    historySets: {
-        chats: {
-            [jid: string]: Chat;
-        };
-        contacts: {
-            [jid: string]: Contact;
-        };
-        messages: {
-            [uqId: string]: WAMessage;
-        };
-        empty: boolean;
-        isLatest: boolean;
-    };
-    chatUpserts: {
-        [jid: string]: Chat;
-    };
-    chatUpdates: {
-        [jid: string]: ChatUpdate;
-    };
-    chatDeletes: Set<string>;
-    contactUpserts: {
-        [jid: string]: Contact;
-    };
-    contactUpdates: {
-        [jid: string]: Partial<Contact>;
-    };
-    messageUpserts: {
-        [key: string]: {
-            type: MessageUpsertType;
-            message: WAMessage;
-        };
-    };
-    messageUpdates: {
-        [key: string]: WAMessageUpdate;
-    };
-    messageDeletes: {
-        [key: string]: WAMessageKey;
-    };
-    messageReactions: {
-        [key: string]: {
-            key: WAMessageKey;
-            reactions: proto.IReaction[];
-        };
-    };
-    messageReceipts: {
-        [key: string]: {
-            key: WAMessageKey;
-            userReceipt: proto.IUserReceipt[];
-        };
-    };
-    groupUpdates: {
-        [jid: string]: Partial<GroupMetadata>;
-    };
-};
-export declare type BaileysEvent = keyof BaileysEventMap;
-export interface BaileysEventEmitter {
-    on<T extends keyof BaileysEventMap>(event: T, listener: (arg: BaileysEventMap[T]) => void): void;
-    off<T extends keyof BaileysEventMap>(event: T, listener: (arg: BaileysEventMap[T]) => void): void;
-    removeAllListeners<T extends keyof BaileysEventMap>(event: T): void;
-    emit<T extends keyof BaileysEventMap>(event: T, arg: BaileysEventMap[T]): boolean;
+export interface CommonBaileysEventEmitter<Creds> extends EventEmitter {
+    on<T extends keyof BaileysEventMap<Creds>>(event: T, listener: (arg: BaileysEventMap<Creds>[T]) => void): this;
+    off<T extends keyof BaileysEventMap<Creds>>(event: T, listener: (arg: BaileysEventMap<Creds>[T]) => void): this;
+    removeAllListeners<T extends keyof BaileysEventMap<Creds>>(event: T): this;
+    emit<T extends keyof BaileysEventMap<Creds>>(event: T, arg: BaileysEventMap<Creds>[T]): boolean;
 }
+export declare type BaileysEventEmitter = CommonBaileysEventEmitter<AuthenticationCreds>;

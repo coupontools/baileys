@@ -1,7 +1,6 @@
 /// <reference types="node" />
 import type { proto } from '../../WAProto';
 import type { Contact } from './Contact';
-import type { MinimalMessage } from './Message';
 export declare type KeyPair = {
     public: Uint8Array;
     private: Uint8Array;
@@ -36,8 +35,6 @@ export declare type SignalCreds = {
 export declare type AccountSettings = {
     /** unarchive chats when a new message is received */
     unarchiveChats: boolean;
-    /** the default mode to start new conversations with */
-    defaultDisappearingMode?: Pick<proto.IConversation, 'ephemeralExpiration' | 'ephemeralSettingTimestamp'>;
 };
 export declare type AuthenticationCreds = SignalCreds & {
     readonly noiseKey: KeyPair;
@@ -50,9 +47,6 @@ export declare type AuthenticationCreds = SignalCreds & {
     nextPreKeyId: number;
     lastAccountSyncTimestamp?: number;
     platform?: string;
-    processedHistoryMessages: MinimalMessage[];
-    /** number of times history & app state has been synced */
-    accountSyncCounter: number;
     accountSettings: AccountSettings;
 };
 export declare type SignalDataTypeMap = {
@@ -62,7 +56,7 @@ export declare type SignalDataTypeMap = {
     'sender-key-memory': {
         [jid: string]: boolean;
     };
-    'app-state-sync-key': proto.Message.IAppStateSyncKeyData;
+    'app-state-sync-key': proto.IAppStateSyncKeyData;
     'app-state-sync-version': LTHashState;
 };
 export declare type SignalDataSet = {
@@ -76,12 +70,11 @@ export declare type SignalKeyStore = {
         [id: string]: SignalDataTypeMap[T];
     }>;
     set(data: SignalDataSet): Awaitable<void>;
-    /** clear all the data in the store */
-    clear?(): Awaitable<void>;
 };
 export declare type SignalKeyStoreWithTransaction = SignalKeyStore & {
     isInTransaction: () => boolean;
     transaction(exec: () => Promise<void>): Promise<void>;
+    prefetch<T extends keyof SignalDataTypeMap>(type: T, ids: string[]): Promise<void>;
 };
 export declare type TransactionCapabilityOptions = {
     maxCommitRetries: number;

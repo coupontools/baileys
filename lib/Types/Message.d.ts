@@ -1,25 +1,22 @@
 /// <reference types="node" />
-/// <reference types="node" />
-/// <reference types="node" />
 import type NodeCache from 'node-cache';
 import type { Logger } from 'pino';
 import type { Readable } from 'stream';
 import type { URL } from 'url';
 import { proto } from '../../WAProto';
-import { MEDIA_HKDF_KEY_MAPPING } from '../Defaults';
 import type { GroupMetadata } from './GroupMetadata';
 export { proto as WAProto };
 export declare type WAMessage = proto.IWebMessageInfo;
 export declare type WAMessageContent = proto.IMessage;
-export declare type WAContactMessage = proto.Message.IContactMessage;
-export declare type WAContactsArrayMessage = proto.Message.IContactsArrayMessage;
+export declare type WAContactMessage = proto.IContactMessage;
+export declare type WAContactsArrayMessage = proto.IContactsArrayMessage;
 export declare type WAMessageKey = proto.IMessageKey;
-export declare type WATextMessage = proto.Message.IExtendedTextMessage;
+export declare type WATextMessage = proto.IExtendedTextMessage;
 export declare type WAContextInfo = proto.IContextInfo;
-export declare type WALocationMessage = proto.Message.ILocationMessage;
-export declare type WAGenericMediaMessage = proto.Message.IVideoMessage | proto.Message.IImageMessage | proto.Message.IAudioMessage | proto.Message.IDocumentMessage | proto.Message.IStickerMessage;
-export import WAMessageStubType = proto.WebMessageInfo.StubType;
-export import WAMessageStatus = proto.WebMessageInfo.Status;
+export declare type WALocationMessage = proto.ILocationMessage;
+export declare type WAGenericMediaMessage = proto.IVideoMessage | proto.IImageMessage | proto.IAudioMessage | proto.IDocumentMessage | proto.IStickerMessage;
+export import WAMessageStubType = proto.WebMessageInfo.WebMessageInfoStubType;
+export import WAMessageStatus = proto.WebMessageInfo.WebMessageInfoStatus;
 export declare type WAMediaUpload = Buffer | {
     url: URL | string;
 } | {
@@ -28,11 +25,11 @@ export declare type WAMediaUpload = Buffer | {
 /** Set of message types that are supported by the library */
 export declare type MessageType = keyof proto.Message;
 export declare type DownloadableMessage = {
-    mediaKey?: Uint8Array | null;
-    directPath?: string | null;
-    url?: string | null;
+    mediaKey?: Uint8Array;
+    directPath?: string;
+    url?: string;
 };
-export declare type MessageReceiptType = 'read' | 'read-self' | 'hist_sync' | 'peer_msg' | 'sender' | 'inactive' | 'played' | undefined;
+export declare type MessageReceiptType = 'read' | 'read-self' | 'hist_sync' | 'peer_msg' | 'sender' | 'inactive' | undefined;
 export declare type MediaConnInfo = {
     auth: string;
     ttl: number;
@@ -46,10 +43,8 @@ export interface WAUrlInfo {
     'canonical-url': string;
     'matched-text': string;
     title: string;
-    description?: string;
+    description: string;
     jpegThumbnail?: Buffer;
-    highQualityThumbnail?: proto.Message.IImageMessage;
-    originalThumbnailUrl?: string;
 }
 declare type Mentionable = {
     /** list of jids that are mentioned in the accompanying text */
@@ -60,7 +55,7 @@ declare type ViewOnce = {
 };
 declare type Buttonable = {
     /** add buttons to the message  */
-    buttons?: proto.Message.ButtonsMessage.IButton[];
+    buttons?: proto.IButton[];
 };
 declare type Templatable = {
     /** add buttons to the message (conflicts with normal buttons)*/
@@ -69,7 +64,7 @@ declare type Templatable = {
 };
 declare type Listable = {
     /** Sections of the List */
-    sections?: proto.Message.ListMessage.ISection[];
+    sections?: proto.ISection[];
     /** Title of a List Message only */
     title?: string;
     /** Text of the bnutton on the list (required) */
@@ -79,7 +74,7 @@ declare type WithDimensions = {
     width?: number;
     height?: number;
 };
-export declare type MediaType = keyof typeof MEDIA_HKDF_KEY_MAPPING;
+export declare type MediaType = 'image' | 'video' | 'sticker' | 'audio' | 'document' | 'history' | 'md-app-state';
 export declare type AnyMediaMessageContent = (({
     image: WAMediaUpload;
     caption?: string;
@@ -97,51 +92,30 @@ export declare type AnyMediaMessageContent = (({
     seconds?: number;
 } | ({
     sticker: WAMediaUpload;
-    isAnimated?: boolean;
 } & WithDimensions) | ({
     document: WAMediaUpload;
     mimetype: string;
     fileName?: string;
-    caption?: string;
 } & Buttonable & Templatable)) & {
     mimetype?: string;
 };
-export declare type ButtonReplyInfo = {
-    displayText: string;
-    id: string;
-    index: number;
-};
-export declare type WASendableProduct = Omit<proto.Message.ProductMessage.IProductSnapshot, 'productImage'> & {
-    productImage: WAMediaUpload;
-};
 export declare type AnyRegularMessageContent = (({
     text: string;
-    linkPreview?: WAUrlInfo | null;
+    linkPreview?: WAUrlInfo;
 } & Mentionable & Buttonable & Templatable & Listable) | AnyMediaMessageContent | {
     contacts: {
         displayName?: string;
-        contacts: proto.Message.IContactMessage[];
+        contacts: proto.IContactMessage[];
     };
 } | {
     location: WALocationMessage;
 } | {
-    react: proto.Message.IReactionMessage;
-} | {
-    buttonReply: ButtonReplyInfo;
-    type: 'template' | 'plain';
-} | {
-    listReply: Omit<proto.Message.IListResponseMessage, 'contextInfo'>;
-} | {
-    product: WASendableProduct;
-    businessOwnerJid?: string;
-    body?: string;
-    footer?: string;
+    react: proto.IReactionMessage;
 }) & ViewOnce;
 export declare type AnyMessageContent = AnyRegularMessageContent | {
     forward: WAMessage;
     force?: boolean;
 } | {
-    /** Delete your message or anyone's message in a group (admin required) */
     delete: WAMessageKey;
 } | {
     disappearingMessagesInChat: boolean | number;
@@ -155,16 +129,11 @@ declare type MinimalRelayOptions = {
 };
 export declare type MessageRelayOptions = MinimalRelayOptions & {
     /** only send to a specific participant; used when a message decryption fails for a single user */
-    participant?: {
-        jid: string;
-        count: number;
-    };
+    participant?: string;
     /** additional attributes to add to the WA binary node */
     additionalAttributes?: {
         [_: string]: string;
     };
-    /** should we use the devices cache, or fetch afresh from the server; default assumed to be "true" */
-    useUserDevicesCache?: boolean;
 };
 export declare type MiscMessageGenerationOptions = MinimalRelayOptions & {
     /** optional, if you want to manually set the timestamp of the message */
@@ -189,22 +158,16 @@ export declare type WAMediaUploadFunction = (readStream: Readable, opts: {
 }>;
 export declare type MediaGenerationOptions = {
     logger?: Logger;
-    mediaTypeOverride?: MediaType;
     upload: WAMediaUploadFunction;
     /** cache media so it does not have to be uploaded again */
     mediaCache?: NodeCache;
     mediaUploadTimeoutMs?: number;
 };
 export declare type MessageContentGenerationOptions = MediaGenerationOptions & {
-    getUrlInfo?: (text: string) => Promise<WAUrlInfo | undefined>;
+    getUrlInfo?: (text: string) => Promise<WAUrlInfo>;
 };
 export declare type MessageGenerationOptions = MessageContentGenerationOptions & MessageGenerationOptionsFromContent;
-/**
- * Type of message upsert
- * 1. notify => notify the user, this message was just received
- * 2. append => append the message to the chat history, no notification required
- */
-export declare type MessageUpsertType = 'append' | 'notify';
+export declare type MessageUpdateType = 'append' | 'notify' | 'replace';
 export declare type MessageUserReceipt = proto.IUserReceipt;
 export declare type WAMessageUpdate = {
     update: Partial<WAMessage>;
@@ -224,4 +187,3 @@ export declare type MediaDecryptionKeyInfo = {
     cipherKey: Buffer;
     macKey?: Buffer;
 };
-export declare type MinimalMessage = Pick<proto.IWebMessageInfo, 'key' | 'messageTimestamp'>;
